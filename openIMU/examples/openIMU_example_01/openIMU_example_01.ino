@@ -23,7 +23,6 @@
  This example code will only work on the MEGA
  To use on a different arduino change the slave select defines or use digitalWrite 
 */
-#include <Streaming.h>
 #include <Wire.h>
 #include <SPI.h>
 #include <openIMU.h>
