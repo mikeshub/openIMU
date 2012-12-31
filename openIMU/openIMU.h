@@ -17,8 +17,14 @@
 #define betaDef1 0.10f//gain for the IMU
 #define betaDef2 0.30f//gain for the AHRS
 
+#define v_ 2.0f//gains for the altimeter
+#define w_ 0.10f
+
+
+
 class openIMU{
 public:
+  openIMU(float*, float*, float*, float*, float*, float*, float*, float*, float*, float*, float*, float*, float*, float*);
   openIMU(float*, float*, float*, float*, float*, float*, float*, float*, float*, float*);
   openIMU(float*, float*, float*, float*, float*, float*, float*);
   //void GYROupdate(void);
@@ -26,8 +32,11 @@ public:
   void AHRSupdate(void);
   void GetEuler(void);
   void InitialQuat(void);
+  void BaroKalUpdate(void);
+  void AccKalUpdate(void);
+  void Rotate(void);
   float q0,q1,q2,q3;
-  float pitch,roll,yaw;
+  float pitch,roll,yaw,altitude;
 private:
   float *gx;
   float *gy;
@@ -39,7 +48,12 @@ private:
   float *my;
   float *mz;
   float *dt;
+  float *sax;//scaled accelerometer value
+  float *say;
+  float *saz;
+  float *altRaw;
 
+  //IMU & AHRS vars
   float squareSum;
   float magnitude;
   float _4q0, _4q1, _4q2, _8q1, _8q2;
@@ -49,6 +63,14 @@ private:
   float qDot1, qDot2, qDot3, qDot4;
   float hx, hy;
   float _2q0mx, _2q0my, _2q0mz, _2q1mx, _2bx, _2bz, _4bx, _4bz, _2q0, _2q1, _2q2, _2q3, _2q0q2, _2q2q3, q0q0, q0q1, q0q2, q0q3, q1q1, q1q2, q1q3, q2q2, q2q3, q3q3;
+  //Altimeter vars
+  float inertialZ;
+  float altEst,velZ;
+  float p11;
+  float p12;
+  float p21;
+  float p22;
+	float k1,k2;
 
   float FastAtan2( float , float );
   float InvSqrt(float );

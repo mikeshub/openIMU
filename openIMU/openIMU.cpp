@@ -4,6 +4,44 @@
 //12/19/2012
 #include <openIMU.h>
 
+openIMU::openIMU(float *gyroX, float *gyroY, float *gyroZ, float *accX, float *accY, float *accZ, float *scAccX, float *scAccY,float *scAccZ, float *magX, float *magY, float *magZ, float *rawAlt ,float *G_Dt){
+	//constructor for the 10DOF system
+  gx = gyroX;
+  gy = gyroY;
+  gz = gyroZ;
+
+  ax = accX;
+  ay = accY;
+  az = accZ;
+
+  mx = magX;
+  my = magY;
+  mz = magZ;
+
+  sax = scAccX;
+  say = scAccY;
+  saz = scAccZ;
+
+  altRaw = rawAlt;
+
+  dt = G_Dt;
+  //set the feedback gain and initial quaternion
+  beta1 = betaDef1;
+  beta2 = betaDef2;
+
+  q0 = 1;
+  q1 = 0;
+  q2 = 0;
+  q3 = 0;
+	//Kalman stuff
+	altEst = 0;
+	velZ = 0;
+	p11 = 0.01;
+	p12 = 0;
+	p21 = 0;
+	p22 = 0.01;
+}
+
 openIMU::openIMU(float *gyroX, float *gyroY, float *gyroZ, float *accX, float *accY, float *accZ, float *magX, float *magY, float *magZ, float *G_Dt){
   //constructor for the full AHRS
   //assign the pointers
@@ -50,6 +88,52 @@ openIMU::openIMU(float *gyroX, float *gyroY, float *gyroZ, float *accX, float *a
   q3 = 0;
 }
 
+void openIMU::BaroKalUpdate(){
+  static float temp;
+  temp = p11 + v_;
+  k1 = p11 / temp;
+  k2 = p21 / temp;
+  velZ += k2 * (*altRaw - altEst);
+  altEst += k1 * (*altRaw - altEst);
+  p22 = p22 - k2 * p12;//run P21 and P22 first because they depend on the pervious values for p11 and p21
+  p21 = p21 - k2 * p11;
+  p11 = -p11*(k1 - 1);
+  p21 = -p12*(k1 - 1);
+
+  altitude = altEst;
+}
+void openIMU::AccKalUpdate(void){
+  //first rotate the accelerometer reading from the body to the intertial frame
+  static float q0q0,q1q1,q2q2,q3q3;
+  static float q0q2x2,q1q3x2,q0q1x2,q2q3x2;
+
+  q0q0 = q0 * q0;
+  q1q1 = q1 * q1;
+  q2q2 = q2 * q2;
+  q3q3 = q3 * q3;
+
+  q0q2x2 = q0 * q2 * 2;
+  q1q3x2 = q1 * q3 * 2;
+  q0q1x2 = q0 * q1 * 2;
+  q2q3x2 = q2 * q3 * 2;
+  //remember gravity is sensed with the sign negated - that is why it is added into the equation instead of subtracted
+  inertialZ = (*saz * (q0q0 - q1q1 - q2q2 + q3q3) - *sax * (q0q2x2 - q1q3x2) + *say * (q0q1x2 + q2q3x2)) + 9.8;
+  //Kalman filter stuff - makes more sense looking at it in matrix form
+  velZ += inertialZ * *dt;
+  altEst += velZ * *dt;
+  p11 = p11 + *dt * p21 + *dt * w_ + *dt * (p12 + *dt * p22);
+  p12 = p12 + *dt * p22;
+  p21 = p21 + *dt * p22;
+  p22 = p22 + *dt * w_;
+
+  altitude = altEst;
+}
+
+void openIMU::Rotate(){
+
+}
+
+
 void openIMU::InitialQuat(){
 	//this function does not have to be called
 	//first calculate the pitch and roll from the accelerometer
@@ -82,7 +166,6 @@ void openIMU::InitialQuat(){
   if (yaw < 0){
     yaw += 360;
   }
-  //Serial.println(yaw);
   //calculate the rotation matrix
   float cosPitch = cos(ToRad(pitch));
   float sinPitch = sin(ToRad(pitch));
@@ -114,29 +197,6 @@ void openIMU::InitialQuat(){
   q3 = (r21 - r12)/(4 * q0);
 }
 
-/*void openIMU::GYROupdate(){
-  //this function only integrates the gyro
-
-  qDot1 = 0.5f * (-q1 * *gx - q2 * *gy - q3 * *gz);
-  qDot2 = 0.5f * (q0 * *gx + q2 * *gz - q3 * *gy);
-  qDot3 = 0.5f * (q0 * *gy - q1 * *gz + q3 * *gx);
-  qDot4 = 0.5f * (q0 * *gz + q1 * *gy - q2 * *gx);
-
-
-
-  // Integrate rate of change of quaternion to yield quaternion
-  q0 += qDot1 * *dt;
-  q1 += qDot2 * *dt;
-  q2 += qDot3 * *dt;
-  q3 += qDot4 * *dt;
-
-  // Normalise quaternion
-  recipNorm = InvSqrt(q0 * q0 + q1 * q1 + q2 * q2 + q3 * q3);
-  q0 *= recipNorm;
-  q1 *= recipNorm;
-  q2 *= recipNorm;
-  q3 *= recipNorm;
-}*/
 void openIMU::IMUupdate() {
   //this function handles pitch and roll
 
@@ -277,8 +337,6 @@ void openIMU::AHRSupdate() {
 		qDot2 -= beta2 * s1;
 		qDot3 -= beta2 * s2;
 		qDot4 -= beta2 * s3;
-  }else{
-	  Serial.println("out of acc range");
   }
 
   // Integrate rate of change of quaternion to yield quaternion

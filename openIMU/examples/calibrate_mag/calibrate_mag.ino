@@ -52,7 +52,7 @@ void loop(){
   Serial.print((int)xMax);
   Serial.print(" Y: ");
   Serial.print((int)yMax);
-  Serial.print("Z: ");
+  Serial.print(" Z: ");
   Serial.println((int)zMax);
   
   delay(20);
