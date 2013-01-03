@@ -18,29 +18,22 @@ void MagInit(){
 
 void AccInit(){
   SPI.setDataMode(SPI_MODE3);
-  AccSSOutput();
+
 
   AccSSLow();
-  delayMicroseconds(1);
   SPI.transfer(WRITE | SINGLE | BW_RATE);
   SPI.transfer(0x0C);//400hz
-  delayMicroseconds(1);
   AccSSHigh();
-  delay(5);
+
   AccSSLow();
-  delayMicroseconds(1);
   SPI.transfer(WRITE | SINGLE | POWER_CTL);
   SPI.transfer(0x08);//start measurment
-  delayMicroseconds(1);
   AccSSHigh();
-  delay(5);
+
   AccSSLow();
-  delayMicroseconds(1);
   SPI.transfer(WRITE | SINGLE | DATA_FORMAT);
   SPI.transfer(0x0B);//full resolution + / - 16g
-  delayMicroseconds(1);
   AccSSHigh();
-  delay(5);
 
   for(j = 0; j < 300; j++){
     GetAcc();//to get the smoothing filters caugt up
@@ -50,44 +43,30 @@ void AccInit(){
 
 void GyroInit(){
   SPI.setDataMode(SPI_MODE0);
-  GyroSSOutput();
+
   GyroSSLow();
-  delayMicroseconds(1);
   SPI.transfer(L3G_CTRL_REG1 | WRITE | SINGLE);
   SPI.transfer(0xCF); //fastest update rate 30Hz cutoff
-  delayMicroseconds(1);
   GyroSSHigh();
-  delay(5);
 
   GyroSSLow();
-  delayMicroseconds(1);
   SPI.transfer(L3G_CTRL_REG2 | WRITE | SINGLE);
   SPI.transfer(0x00); //high pass filter disabled
-  delayMicroseconds(1);
   GyroSSHigh();
-  delay(5);
 
   GyroSSLow();
-  delayMicroseconds(1);
   SPI.transfer(L3G_CTRL_REG3 | WRITE | SINGLE);
   SPI.transfer(0x00); //not using interrupts
-  delayMicroseconds(1);
   GyroSSHigh();
-  delay(5);
 
   GyroSSLow();
-  delayMicroseconds(1);
   SPI.transfer(L3G_CTRL_REG4 | WRITE | SINGLE);
   SPI.transfer(0x20); //2000dps scale
-  delayMicroseconds(1);
   GyroSSHigh();
-  delay(5);
 
   GyroSSLow();
-  delayMicroseconds(1);
   SPI.transfer(L3G_CTRL_REG5 | WRITE | SINGLE);
   SPI.transfer(0x02); //out select to use the second LPF
-  delayMicroseconds(1);
   GyroSSHigh();
   delay(5);
 
@@ -135,12 +114,10 @@ void GetMag(){
 void GetGyro(){
   SPI.setDataMode(SPI_MODE0);
   GyroSSLow();
-  delayMicroseconds(1);
   SPI.transfer(L3G_OUT_X_L  | READ | MULTI);
   for (i = 0; i < 6; i++){//the endianness matches as does the axis order
     gyro.buffer[i] = SPI.transfer(0x00);
   }
-  delayMicroseconds(1);
   GyroSSHigh();
   //don't forget to convert to radians per second. This absolutely will not work otherwise
   //check the data sheet for more info on this
@@ -152,12 +129,10 @@ void GetGyro(){
 void GetAcc(){
   SPI.setDataMode(SPI_MODE3);
   AccSSLow();
-  delayMicroseconds(1);
   SPI.transfer(DATAX0 | READ | MULTI);
   for (i = 0; i < 6; i++){//the endianness matches as does the axis order
     acc.buffer[i] = SPI.transfer(0x00);
   }
-  delayMicroseconds(1);
   AccSSHigh();  
 
   //the filter expects gravity to be in NED coordinates

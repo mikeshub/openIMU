@@ -184,7 +184,13 @@ void setup(){
   SPI.begin();
   SPI.setBitOrder(MSBFIRST);
   SPI.setClockDivider(SPI_CLOCK_DIV2);  
+  
+  AccSSOutput();//this was moved from the init
+  AccSSHigh();//if high isn't written to both devices befor config 
+  GyroSSOutput();//the SPI bus will be addressing both devices 
+  GyroSSHigh();
   GyroInit();
+  
   Serial.println("Gyro init complete");
   AccInit();
   Serial.println("Accelerometer init complete");
@@ -260,6 +266,7 @@ void loop(){
 void Smoothing(int16_t *raw, float *smooth){
   *smooth = (*raw * (0.15)) + (*smooth * 0.85);
 }
+
 
 
 

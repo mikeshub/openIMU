@@ -22,7 +22,7 @@
  Sensors must be in the North East Down convention
  This example code will only work on the MEGA
  To use on a different arduino change the slave select defines or use digitalWrite 
-*/
+ */
 #include <Wire.h>
 #include <SPI.h>
 #include <openIMU.h>
@@ -118,6 +118,10 @@ void setup(){
   SPI.begin();
   SPI.setBitOrder(MSBFIRST);
   SPI.setClockDivider(SPI_CLOCK_DIV2);  
+  AccSSOutput();//this was moved from the init
+  AccSSHigh();//if high isn't written to both devices befor config 
+  GyroSSOutput();//the SPI bus will be addressing both devices 
+  GyroSSHigh();
   GyroInit();
   Serial.println("Gyro init complete");
   AccInit();
@@ -145,15 +149,15 @@ void loop(){
     GetMag();
     imu.AHRSupdate();
   }
-/*if (micros() - timer >= 2500){
-    //example for the pitch and roll calculations only
-    //on the MEGA 2560 this takes about 1.7ms
-    dt = ((micros() - timer) / 1000000.0);
-    timer = micros();
-    GetGyro();
-    GetAcc();
-    imu.IMUupdate();
-  }*/
+  /*if (micros() - timer >= 2500){
+   //example for the pitch and roll calculations only
+   //on the MEGA 2560 this takes about 1.7ms
+   dt = ((micros() - timer) / 1000000.0);
+   timer = micros();
+   GetGyro();
+   GetAcc();
+   imu.IMUupdate();
+   }*/
 
   if (millis() - printTimer > 20){
     printTimer = millis();
@@ -189,29 +193,21 @@ void MagInit(){
 
 void AccInit(){
   SPI.setDataMode(SPI_MODE3);
-  AccSSOutput();
 
   AccSSLow();
-  delayMicroseconds(1);
   SPI.transfer(WRITE | SINGLE | BW_RATE);
   SPI.transfer(0x0C);//400hz
-  delayMicroseconds(1);
   AccSSHigh();
-  delay(5);
+
   AccSSLow();
-  delayMicroseconds(1);
   SPI.transfer(WRITE | SINGLE | POWER_CTL);
   SPI.transfer(0x08);//start measurment
-  delayMicroseconds(1);
   AccSSHigh();
-  delay(5);
+
   AccSSLow();
-  delayMicroseconds(1);
   SPI.transfer(WRITE | SINGLE | DATA_FORMAT);
   SPI.transfer(0x0B);//full resolution + / - 16g
-  delayMicroseconds(1);
   AccSSHigh();
-  delay(5);
 
   for(j = 0; j < 300; j++){
     GetAcc();//to get the smoothing filters caugt up
@@ -221,46 +217,31 @@ void AccInit(){
 
 void GyroInit(){
   SPI.setDataMode(SPI_MODE0);
-  GyroSSOutput();
+
   GyroSSLow();
-  delayMicroseconds(1);
   SPI.transfer(L3G_CTRL_REG1 | WRITE | SINGLE);
   SPI.transfer(0xCF); //fastest update rate 30Hz cutoff
-  delayMicroseconds(1);
   GyroSSHigh();
-  delay(5);
 
   GyroSSLow();
-  delayMicroseconds(1);
   SPI.transfer(L3G_CTRL_REG2 | WRITE | SINGLE);
   SPI.transfer(0x00); //high pass filter disabled
-  delayMicroseconds(1);
   GyroSSHigh();
-  delay(5);
 
   GyroSSLow();
-  delayMicroseconds(1);
   SPI.transfer(L3G_CTRL_REG3 | WRITE | SINGLE);
   SPI.transfer(0x00); //not using interrupts
-  delayMicroseconds(1);
   GyroSSHigh();
-  delay(5);
 
   GyroSSLow();
-  delayMicroseconds(1);
   SPI.transfer(L3G_CTRL_REG4 | WRITE | SINGLE);
   SPI.transfer(0x20); //2000dps scale
-  delayMicroseconds(1);
   GyroSSHigh();
-  delay(5);
 
   GyroSSLow();
-  delayMicroseconds(1);
   SPI.transfer(L3G_CTRL_REG5 | WRITE | SINGLE);
   SPI.transfer(0x02); //out select to use the second LPF
-  delayMicroseconds(1);
   GyroSSHigh();
-  delay(5);
 
   //this section takes an average of 500 samples to calculate the offset
   //if this step is skipped the IMU will still work, but this simple step gives better results
@@ -306,12 +287,10 @@ void GetMag(){
 void GetGyro(){
   SPI.setDataMode(SPI_MODE0);
   GyroSSLow();
-  delayMicroseconds(1);
   SPI.transfer(L3G_OUT_X_L  | READ | MULTI);
   for (i = 0; i < 6; i++){//the endianness matches as does the axis order
     gyro.buffer[i] = SPI.transfer(0x00);
   }
-  delayMicroseconds(1);
   GyroSSHigh();
   //don't forget to convert to radians per second. This absolutely will not work otherwise
   //check the data sheet for more info on this
@@ -324,12 +303,10 @@ void GetAcc(){
   static int16_t negated;
   SPI.setDataMode(SPI_MODE3);
   AccSSLow();
-  delayMicroseconds(1);
   SPI.transfer(DATAX0 | READ | MULTI);
   for (i = 0; i < 6; i++){//the endianness matches as does the axis order
     acc.buffer[i] = SPI.transfer(0x00);
   }
-  delayMicroseconds(1);
   AccSSHigh();  
 
   //the filter expects gravity to be in NED coordinates
@@ -360,6 +337,7 @@ void GetAcc(){
 void Smoothing(int16_t *raw, float *smooth){
   *smooth = (*raw * (0.15)) + (*smooth * 0.85);
 }
+
 
 
 
