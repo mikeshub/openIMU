@@ -279,8 +279,8 @@ void GetMag(){
 
 
   floatMagX = ((float)mag.v.x - compassXMin) * inverseXRange - 1.0;
-  floatMagY = ((float)mag.v.y - compassYMin) * inverseYRange - 1.0;
-  floatMagZ = ((float)mag.v.z - compassZMin) * inverseZRange - 1.0;
+  floatMagY = -1.0 * (((float)mag.v.y - compassYMin) * inverseYRange - 1.0);
+  floatMagZ = -1.0 * (((float)mag.v.z - compassZMin) * inverseZRange - 1.0);
 
 }
 
@@ -296,7 +296,9 @@ void GetGyro(){
   //check the data sheet for more info on this
   radianGyroX = ToRad((gyro.v.x - offsetX) * 0.07);
   radianGyroY = ToRad((gyro.v.y - offsetY) * 0.07);
+  radianGyroY *= -1.0;
   radianGyroZ = ToRad((gyro.v.z - offsetZ) * 0.07);
+  radianGyroZ *= -1.0;
 }
 
 void GetAcc(){
@@ -313,22 +315,22 @@ void GetAcc(){
   //switching the sign will fix this
   //the raw values are not negated because the accelerometer values will be used with a barometer for altimeter data in a future revisi
 
-  /*
+  
   negated = acc.v.x * -1;
    Smoothing(&negated,&smoothAccX);//this is a very simple low pass digital filter
-   negated = acc.v.y * -1;
+   negated = acc.v.y ;
    Smoothing(&negated,&smoothAccY);//it helps significiantlly with vibrations. 
-   negated = acc.v.z * -1;
+   negated = acc.v.z ;
    Smoothing(&negated,&smoothAccZ);//if the applicaion is not prone to vibrations this can skipped and the raw value simply recast as a float
-   */
+   
   //the order and signs have been switched due to the accelerometer being mounted off by 90 degrees
   //one must be careful to make sure that all of the sensors are in the North, East, Down convention
-  negated = acc.v.y * -1;
+  /*negated = acc.v.y * -1;
   Smoothing(&negated,&smoothAccX);//this is a very simple low pass digital filter
   negated = acc.v.x;
   Smoothing(&negated,&smoothAccY);//it helps significiantlly with vibrations. 
   negated = acc.v.z * -1;
-  Smoothing(&negated,&smoothAccZ);//if the applicaion is not prone to vibrations this can skipped and the raw value simply recast as a float
+  Smoothing(&negated,&smoothAccZ);//if the applicaion is not prone to vibrations this can skipped and the raw value simply recast as a float*/
   accToFilterX = smoothAccX;//if the value from the smoothing filter is sent it will not work when the algorithm normalizes the vector
   accToFilterY = smoothAccY;
   accToFilterZ = smoothAccZ;
